@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vector Perception Demo — Humanoid Vision Stack</title>
+  <meta name="description" content="Independent browser demo of intralogistics perception primitives: object detection, tracking, human pose, and simulated depth. Runs 100% client-side.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page">
+
+    <!-- ===================== Header ===================== -->
+    <header class="site-header">
+      <div class="brand">
+        <svg class="logo" viewBox="0 0 48 48" width="40" height="40" aria-hidden="true">
+          <polygon points="24,3 43,14 43,34 24,45 5,34 5,14" fill="none" stroke="#06b6d4" stroke-width="3"/>
+          <circle cx="24" cy="17" r="4.5" fill="none" stroke="#00f7ff" stroke-width="2.5"/>
+          <line x1="24" y1="22" x2="24" y2="32" stroke="#00f7ff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="16" y1="27" x2="32" y2="27" stroke="#00f7ff" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="24" y1="32" x2="17" y2="39" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="24" y1="32" x2="31" y2="39" stroke="#06b6d4" stroke-width="2.5" stroke-linecap="round"/>
+        </svg>
+        <div class="brand-text">
+          <h1>Vector Perception Demo</h1>
+          <p>Humanoid vision stack &middot; intralogistics perception primitives</p>
+        </div>
+      </div>
+      <div class="badges">
+        <span class="badge" id="badgeTfjs"><span class="dot"></span>TF.js: <b>loading</b></span>
+        <span class="badge" id="badgeCoco"><span class="dot"></span>COCO-SSD: <b>loading</b></span>
+        <span class="badge" id="badgePose"><span class="dot"></span>MoveNet: <b>loading</b></span>
+        <span class="badge mode" id="badgeMode"><span class="dot"></span><b id="modeText">SIMULATED</b></span>
+      </div>
+    </header>
+
+    <!-- ===================== Main grid ===================== -->
+    <main class="grid">
+
+      <!-- Left: camera feed -->
+      <section class="panel feed-panel">
+        <h2>Camera feed</h2>
+        <div class="canvas-wrap">
+          <canvas id="feedCanvas" width="640" height="480" aria-label="Camera feed with detection and pose overlays"></canvas>
+          <div class="sim-badge" id="simBadge">SIMULATED FEED</div>
+        </div>
+        <div class="notice" id="notice" hidden></div>
+        <div class="controls">
+          <button class="btn" id="btnWebcam">Use webcam</button>
+          <button class="btn btn-secondary" id="btnSample">Sample scene</button>
+        </div>
+      </section>
+
+      <!-- Right column -->
+      <div class="side">
+        <section class="panel">
+          <h2>Depth <span class="tag">SIMULATED DEPTH &mdash; illustrative only</span></h2>
+          <canvas id="depthCanvas" width="320" height="240" class="depth-canvas" aria-label="Simulated depth visualization"></canvas>
+          <div class="legend">
+            <span class="legend-item"><span class="swatch near"></span>near</span>
+            <span class="legend-item"><span class="swatch far"></span>far</span>
+          </div>
+        </section>
+
+        <section class="panel">
+          <h2>Telemetry</h2>
+          <dl class="telemetry">
+            <div class="row"><dt>FPS</dt><dd id="tFps">&mdash;</dd></div>
+            <div class="row"><dt>Inference latency</dt><dd id="tLatency">&mdash;</dd></div>
+            <div class="row"><dt>Active detections</dt><dd id="tDetections">0</dd></div>
+            <div class="row"><dt>Track IDs</dt><dd id="tTrackIds">&mdash;</dd></div>
+          </dl>
+        </section>
+      </div>
+    </main>
+
+    <!-- ===================== How it works ===================== -->
+    <section class="how">
+      <h2>How it works</h2>
+      <div class="cards">
+        <article class="card">
+          <h3>Detection</h3>
+          <p>COCO-SSD finds objects in each frame, straight from the webcam. Every box carries a class name and a confidence score.</p>
+        </article>
+        <article class="card">
+          <h3>Tracking</h3>
+          <p>Boxes are matched across frames by Intersection-over-Union, so each object keeps a stable integer ID as it moves.</p>
+        </article>
+        <article class="card">
+          <h3>Pose</h3>
+          <p>MoveNet estimates a 17-keypoint human skeleton on every detection pass and draws it over the frame.</p>
+        </article>
+        <article class="card">
+          <h3>Depth</h3>
+          <p>Detection size is projected into a simulated depth map: bigger boxes read as nearer, brighter cyan blobs.</p>
+        </article>
+      </div>
+      <p class="honest">
+        This is a browser demo of perception primitives, running 100% client-side with no backend and no data leaving the device.
+        A production stack trains on warehouse classes such as cartons, pallets, and racks; COCO-SSD covers 80 everyday classes instead.
+        The depth view is synthetic and illustrative only. This is not the Vector OS stack.
+      </p>
+    </section>
+
+    <footer class="site-footer">
+      Independent demo by Sarthak Sattigeri &middot; built to demonstrate perception-stack skills &middot;
+      runs entirely in your browser, no data leaves the device
+    </footer>
+  </div>
+
+  <!-- Hidden live video element used only as an inference source -->
+  <video id="camVideo" playsinline muted style="display:none" aria-hidden="true"></video>
+
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.3/dist/coco-ssd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/pose-detection@2.1.3/dist/pose-detection.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
